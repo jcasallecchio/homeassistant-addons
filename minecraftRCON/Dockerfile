@@ -1,4 +1,4 @@
-ARG BUILD_FROM
+thARG BUILD_FROM
 FROM itzg/minecraft-bedrock-server
 
 # Instala dependências mínimas necessárias para rodar o servidor RCON
@@ -34,7 +34,7 @@ LABEL \
     io.hass.arch="${BUILD_ARCH}" \
     io.hass.type="addon" \
     io.hass.version=${BUILD_VERSION} \
-    maintainer="jcasallecchio (https://github.com/jcasallecchio)" \
+    maintainer="jdeath (https://github.com/jcasallecchio)" \
     org.opencontainers.image.title="${BUILD_NAME}" \
     org.opencontainers.image.description="${BUILD_DESCRIPTION}" \
     org.opencontainers.image.vendor="Home Assistant Add-ons" \
