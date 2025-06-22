@@ -1,26 +1,18 @@
-ARG BUILD_FROM
 FROM itzg/minecraft-bedrock-server
-
 USER root
 
-# Instala dependências mínimas necessárias para rodar o servidor RCON
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip screen psmisc \
-    build-essential libffi-dev libssl-dev && \
-    pip3 install --no-cache-dir flask && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 python3-pip
 
-# Pasta de dados persistente
-VOLUME [ "/share" ]
+RUN apt-get install -y screen psmisc build-essential libffi-dev libssl-dev
 
-# Copia scripts para o contêiner
+RUN pip3 install --no-cache-dir flask
+
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
 COPY run.sh /run.sh
 COPY rcon_server.py /rcon_server.py
-
-# Permissões
 RUN chmod +x /run.sh
-
-# Define o entrypoint principal
+VOLUME [ "/share" ]
 ENTRYPOINT [ "/run.sh" ]
 
 ### LABELS
