@@ -2,9 +2,11 @@ ARG BUILD_FROM
 FROM itzg/minecraft-bedrock-server
 
 # Instala dependências mínimas necessárias para rodar o servidor RCON
-RUN apt-get update && apt-get install -y python3 python3-pip screen psmisc
-RUN pip3 install flask
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip screen psmisc \
+    build-essential libffi-dev libssl-dev && \
+    pip3 install --no-cache-dir flask && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Pasta de dados persistente
 VOLUME [ "/share" ]
