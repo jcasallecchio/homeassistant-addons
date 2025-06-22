@@ -22,10 +22,10 @@
 	"19133/tcp": "RCON Port"
   },
   "schema": {},
-  "slug": "minecraftRCON",
+  "slug": "minecraftrcon",
   "startup": "services",
-  "upstream": "1.1.0",
+  "upstream": "1.1.9",
   "url": "https://github.com/jcasallecchio/homeassistant-addons",
-  "version": "1.1.0",
+  "version": "1.1.9",
   "ingress": false
 }
