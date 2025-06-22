@@ -4,26 +4,28 @@
     "aarch64"
   ],
   "boot": "auto",
-  "description": "Minecraft Dedicated Server",
+  "description": "Minecraft Dedicated Server with RCON",
   "environment": {
     "EULA": "TRUE"
   },
   "map": [
     "share:rw"
   ],
-  "name": "minecraftbe",
+  "name": "minecraftRCON",
   "options": {},
   "ports": {
-    "19132/udp": 19132
+    "19132/udp": 19132,
+	"19133/tcp": 19133
   },
   "ports_description": {
-    "19132/udp": "Api Port"
+    "19132/udp": "Api Port",
+	"19133/tcp": "RCON Port"
   },
   "schema": {},
-  "slug": "minecraftbe",
+  "slug": "minecraftRCON",
   "startup": "services",
-  "upstream": "2025.6.0",
-  "url": "https://github.com/jdeath/homeassistant-addons",
-  "version": "2025.6.0",
+  "upstream": "1.1.0",
+  "url": "https://github.com/jcasallecchio/homeassistant-addons",
+  "version": "1.1.0",
   "ingress": false
 }
