@@ -1,4 +1,4 @@
-thARG BUILD_FROM
+ARG BUILD_FROM
 FROM itzg/minecraft-bedrock-server
 
 # Instala dependências mínimas necessárias para rodar o servidor RCON
