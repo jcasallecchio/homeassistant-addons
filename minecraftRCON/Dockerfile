@@ -1,14 +1,11 @@
 FROM itzg/minecraft-bedrock-server
 USER root
 
-RUN apt-get update && apt-get install -y python3 python3-pip
-
-RUN apt-get install -y screen psmisc build-essential libffi-dev libssl-dev
-
-RUN pip3 install --no-cache-dir flask
-
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip screen psmisc build-essential libffi-dev libssl-dev && \
+    pip3 install --no-cache-dir flask --break-system-packages && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+    
 COPY run.sh /run.sh
 COPY rcon_server.py /rcon_server.py
 RUN chmod +x /run.sh
