@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ ############### Iniciando script do Minecraft Bedrock RCON" ############### ]
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ ############### Iniciando Minecraft Bedrock RCON" ############### ]
 
 SERVER_DIR="/share/minecraftRCON"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
