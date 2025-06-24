@@ -11,26 +11,13 @@ mkdir -p "$SERVER_DIR"
 
 # Se existir o zip, extrai e apaga para atualizar o servidor
 if [ -f "$SERVER_ZIP" ]; then
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Arquivo encontrado. Contando arquivos..."
-  total=$(unzip -l "$SERVER_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Total de arquivos a extrair: $total"
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando extração..."
-
-  count=0
-  last_percent=0
-  unzip -o "$SERVER_ZIP" -d "$SERVER_DIR" | while read -r line; do
-    if echo "$line" | grep -q "inflating:"; then
-      count=$((count + 1))
-      percent=$((count * 100 / total))
-      if [ "$percent" -ne "$last_percent" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extraindo arquivos... $percent%"
-        last_percent=$percent
-      fi
-    fi
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Arquivo encontrado. Extraindo para atualização..."
+  unzip -o "$SERVER_ZIP" -d "$SERVER_DIR" | while IFS= read -r line; do
+    echo -ne "[$(date '+%Y-%m-%d %H:%M:%S')] Extraindo arquivos...\r"
   done
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extração concluída! Removendo $SERVER_ZIP"
   chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
+  echo -e "\n[$(date '+%Y-%m-%d %H:%M:%S')] Extração concluída! Arquivo removido."
 fi
 
 # Verifica se o servidor está disponível
@@ -42,12 +29,15 @@ fi
 cd "$SERVER_DIR"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando servidor Minecraft..."
 
-"$SERVER_BIN" &
+# Inicia com screen e log visível no Add-on
+screen -dmS mc bash -c "./bedrock_server | tee /proc/1/fd/1"
 
+# Aguarda o servidor subir
 sleep 10
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando RCON personalizado..."
 python3 /rcon_server.py &
 
+# Espera ambos processos
 wait -n
 exit $?
