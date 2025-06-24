@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
 
-MINECRAFT_DIR="/share/minecraftRCON"
+set -e
 
-# Cria a pasta de instalação, se não existir
-mkdir -p "${MINECRAFT_DIR}"
+SERVER_DIR="/share/minecraftRCON"
+SERVER_BIN="$SERVER_DIR/bedrock_server"
+SERVER_URL="https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.21.92.1.zip"
 
-# Faz download e extrai o Bedrock Server se ainda não existir
-if [ ! -f "${MINECRAFT_DIR}/bedrock_server" ]; then
-    echo "Baixando Minecraft Bedrock Server..."
-    curl -sL -o /tmp/bedrock-server.zip "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.21.92.1.zip"
-    unzip -o /tmp/bedrock-server.zip -d "${MINECRAFT_DIR}"
-    chmod +x "${MINECRAFT_DIR}/bedrock_server"
+# Cria diretório se não existir
+mkdir -p "$SERVER_DIR"
+
+# Baixa e extrai o servidor se não estiver presente
+if [ ! -f "$SERVER_BIN" ]; then
+  curl -sSL -o "$SERVER_DIR/server.zip" "$SERVER_URL"
+  unzip -o "$SERVER_DIR/server.zip" -d "$SERVER_DIR"
+  chmod +x "$SERVER_BIN"
+  rm "$SERVER_DIR/server.zip"
 fi
 
-# Entra no diretório do servidor
-cd "${MINECRAFT_DIR}"
+cd "$SERVER_DIR"
 
-# Inicia o servidor no screen
+# Inicia o servidor em uma sessão do screen
 screen -dmS mc ./bedrock_server
 
-# Aguarda servidor iniciar
+# Aguarda o servidor iniciar
 sleep 10
 
-# Inicia servidor RCON
+# Inicia o RCON personalizado
 python3 /rcon_server.py &
 
 wait -n
