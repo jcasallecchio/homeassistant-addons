@@ -1,18 +1,15 @@
-FROM debian:bullseye-slim
+FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
-    libssl-dev libcurl4 libstdc++6 libz-dev \
-    python3 python3-pip unzip curl screen psmisc && \
-    pip3 install flask pexpect waitress && \
-    apt-get clean
+    unzip curl screen psmisc && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY . /bedrock
-WORKDIR /bedrock
-
-RUN chmod +x bedrock_server
+RUN pip install flask waitress
 
 COPY rcon_server.py /rcon_server.py
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
-CMD [ "/run.sh" ]
+WORKDIR /share/minecraftRCON
+
+CMD ["/run.sh"]
