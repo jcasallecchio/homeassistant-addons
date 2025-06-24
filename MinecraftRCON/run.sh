@@ -2,46 +2,39 @@
 
 set -e
 
+echo "* Iniciando script de inicialização do Minecraft Bedrock RCON"
+
 SERVER_DIR="/share/minecraftRCON"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
 SERVER_URL="https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.21.92.1.zip"
 SERVER_ZIP="$SERVER_DIR/server.zip"
 
-echo "🟢 Iniciando script de inicialização do Minecraft Bedrock RCON"
+# Cria diretório se não existir
 mkdir -p "$SERVER_DIR"
 
-# Baixa o servidor somente se não estiver presente
+# Baixa e extrai o servidor se não estiver presente
 if [ ! -f "$SERVER_BIN" ]; then
-  if [ ! -f "$SERVER_ZIP" ]; then
-    echo "⏬ Baixando servidor Bedrock..."
-    curl -L --progress-bar -o "$SERVER_ZIP" "$SERVER_URL" || {
-      echo "❌ Erro ao baixar o servidor. Verifique a URL ou sua conexão."
-      exit 1
-    }
-  else
-    echo "📦 Arquivo server.zip já está presente. Pulando download."
-  fi
+  echo "* Baixando servidor Bedrock com wget..."
+  wget -O "$SERVER_ZIP" "$SERVER_URL" || {
+    echo "* Erro ao baixar o servidor. Verifique a URL ou sua conexão."
+    exit 1
+  }
 
-  echo "📂 Extraindo arquivos..."
+  echo "* Extraindo arquivos..."
   unzip -o "$SERVER_ZIP" -d "$SERVER_DIR"
   chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
-else
-  echo "✅ Servidor já instalado em $SERVER_BIN"
 fi
 
 cd "$SERVER_DIR"
 
-# Limpa o console do Add-on (funciona apenas no terminal real)
-clear || true
-
-echo "🟢 Iniciando servidor Minecraft em background..."
+echo "* Iniciando servidor em sessão screen"
 screen -dmS mc ./bedrock_server
 
-echo "⏳ Aguardando o servidor subir..."
+# Aguarda o servidor iniciar
 sleep 10
 
-echo "🟢 Iniciando servidor RCON customizado..."
+echo "* Iniciando RCON personalizado"
 python3 /rcon_server.py &
 
 wait -n
