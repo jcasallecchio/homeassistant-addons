@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+import subprocess
 
 app = Flask(__name__)
 
@@ -7,11 +8,20 @@ app = Flask(__name__)
 def rcon():
     data = request.get_json()
     cmd = data.get("command", "").strip()
+
     if not cmd:
         return jsonify({"status": "error", "message": "Missing command"}), 400
+
     try:
-        os.system(f"screen -S mc -X stuff '{cmd}\r'")
-        return jsonify({"status": "ok", "message": "Command sent"})
+        # Encontra o PID do processo do servidor
+        pid = subprocess.check_output(["pgrep", "-f", "bedrock_server"]).decode().strip()
+        stdin_path = f"/proc/{pid}/fd/0"
+
+        # Escreve diretamente no stdin
+        with open(stdin_path, "w") as f:
+            f.write(cmd + "\n")
+
+        return jsonify({"status": "ok", "message": f"Command '{cmd}' sent to server"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
