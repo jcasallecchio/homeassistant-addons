@@ -26,12 +26,16 @@ fi
 
 cd "$SERVER_DIR"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando servidor Minecraft..."
-screen -dmS mc ./bedrock_server
 
+# Inicia o servidor no primeiro plano, com logs visíveis no container
+"$SERVER_BIN" &
+
+# Aguarda o servidor subir
 sleep 10
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando RCON personalizado..."
 python3 /rcon_server.py &
 
+# Espera ambos processos
 wait -n
 exit $?
