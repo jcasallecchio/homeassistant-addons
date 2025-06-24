@@ -12,12 +12,10 @@ mkdir -p "$SERVER_DIR"
 # Se existir o zip, extrai e apaga para atualizar o servidor
 if [ -f "$SERVER_ZIP" ]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Arquivo encontrado. Extraindo para atualização..."
-  unzip -o "$SERVER_ZIP" -d "$SERVER_DIR" | while IFS= read -r line; do
-    echo -ne "[$(date '+%Y-%m-%d %H:%M:%S')] Extraindo arquivos...\r"
-  done
+  unzip -o "$SERVER_ZIP" -d "$SERVER_DIR"
   chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
-  echo -e "\n[$(date '+%Y-%m-%d %H:%M:%S')] Extração concluída! Arquivo removido."
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extração concluída! Arquivo removido."
 fi
 
 # Verifica se o servidor está disponível
@@ -29,15 +27,13 @@ fi
 cd "$SERVER_DIR"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando servidor Minecraft..."
 
-# Inicia com screen e log visível no Add-on
+# Inicia o servidor com logs visíveis
 screen -dmS mc bash -c "./bedrock_server | tee /proc/1/fd/1"
 
-# Aguarda o servidor subir
 sleep 10
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando RCON personalizado..."
 python3 /rcon_server.py &
 
-# Espera ambos processos
 wait -n
 exit $?
