@@ -2,7 +2,7 @@
 
 set -e
 
-echo "* Iniciando script de inicialização do Minecraft Bedrock RCON"
+echo "🟢 Iniciando script de inicialização do Minecraft Bedrock RCON"
 
 SERVER_DIR="/share/minecraftRCON"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
@@ -14,13 +14,13 @@ mkdir -p "$SERVER_DIR"
 
 # Baixa e extrai o servidor se não estiver presente
 if [ ! -f "$SERVER_BIN" ]; then
-  echo "* Baixando servidor Bedrock com wget..."
+  echo "⏬ Baixando servidor Bedrock com wget..."
   wget -O "$SERVER_ZIP" "$SERVER_URL" || {
-    echo "* Erro ao baixar o servidor. Verifique a URL ou sua conexão."
+    echo "❌ Erro ao baixar o servidor. Verifique a URL ou sua conexão."
     exit 1
   }
 
-  echo "* Extraindo arquivos..."
+  echo "📦 Extraindo arquivos..."
   unzip -o "$SERVER_ZIP" -d "$SERVER_DIR"
   chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
@@ -28,13 +28,13 @@ fi
 
 cd "$SERVER_DIR"
 
-echo "* Iniciando servidor em sessão screen"
+echo "🚀 Iniciando servidor em sessão screen"
 screen -dmS mc ./bedrock_server
 
 # Aguarda o servidor iniciar
 sleep 10
 
-echo "* Iniciando RCON personalizado"
+echo "🔌 Iniciando RCON personalizado"
 python3 /rcon_server.py &
 
 wait -n
