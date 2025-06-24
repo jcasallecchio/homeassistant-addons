@@ -1,0 +1,18 @@
+{
+  "name": "Bedrock Server with RCON",
+  "version": "1.2.0",
+  "slug": "bedrock_server_rcon",
+  "description": "Minecraft Bedrock Server with RCON via stdin for Home Assistant",
+  "startup": "services",
+  "boot": "auto",
+  "host_network": true,
+  "privileged": ["NET_ADMIN"],
+  "ingress": false,
+  "panel_icon": "mdi:minecraft",
+  "arch": ["aarch64", "amd64", "armv7", "i386"],
+  "ports": {
+    "19132/udp": 19132
+  },
+  "map": ["share:rw"],
+  "schema": {}
+}
