@@ -55,5 +55,5 @@ python3 /rcon_server.py &
 
 echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] ${GREEN}Minecraft Bedrock RCON Server Online...${NC}"
 
-wait -n
+wait
 exit $?
