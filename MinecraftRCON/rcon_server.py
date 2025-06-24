@@ -1,15 +1,15 @@
 from flask import Flask, request, jsonify
 import os
 import subprocess
+from waitress import serve
 
 app = Flask(__name__)
 
 def screen_exists(session_name="mc"):
-    """Verifica se a sessão screen está ativa"""
     try:
         output = subprocess.check_output(["screen", "-ls"]).decode()
         return f"\t{session_name}" in output or f".{session_name}" in output
-    except Exception as e:
+    except Exception:
         return False
 
 @app.route("/rcon", methods=["POST"])
@@ -31,4 +31,4 @@ def rcon():
 
 if __name__ == "__main__":
     print("[RCON] Servidor RCON iniciado na porta 19133")
-    app.run(host="0.0.0.0", port=19133)
+    serve(app, host="0.0.0.0", port=19133)
