@@ -17,14 +17,18 @@ if [ -f "$SERVER_ZIP" ]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando extração..."
 
   count=0
+  last_percent=0
   unzip -o "$SERVER_ZIP" -d "$SERVER_DIR" | while read -r line; do
     if echo "$line" | grep -q "inflating:"; then
       count=$((count + 1))
       percent=$((count * 100 / total))
-      printf "\r[%s] Extraindo arquivos... %3d%%" "$(date '+%Y-%m-%d %H:%M:%S')" "$percent"
+      if [ "$percent" -ne "$last_percent" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extraindo arquivos... $percent%"
+        last_percent=$percent
+      fi
     fi
   done
-  echo -e "\n[$(date '+%Y-%m-%d %H:%M:%S')] Extração concluída! Removendo $SERVER_ZIP"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extração concluída! Removendo $SERVER_ZIP"
   chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
 fi
@@ -38,15 +42,12 @@ fi
 cd "$SERVER_DIR"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando servidor Minecraft..."
 
-# Inicia o servidor no primeiro plano, com logs visíveis no container
 "$SERVER_BIN" &
 
-# Aguarda o servidor subir
 sleep 10
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando RCON personalizado..."
 python3 /rcon_server.py &
 
-# Espera ambos processos
 wait -n
 exit $?
