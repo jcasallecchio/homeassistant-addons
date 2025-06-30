@@ -1,13 +1,20 @@
-# Bedrock Homeassistant Server with RCON
+# homeassistant-addons
 
-![Supports aarch64 Architecture][aarch64-shield]
-![Supports amd64 Architecture][amd64-shield]
+[![Stargazers repo roster for @jcasallecchio/homeassistant-addons](https://git-lister.onrender.com/api/stars/jcasallecchio/homeassistant-addons?limit=30)](https://github.com/jcasallecchio/homeassistant-addons/stargazers)
+
+## About
+
+My personal repository of tools and materials that I created or adapted for Home Assitant.
+
+## Credits
+
+MinecraftRCON: Based on the original code by jdeath [https://github.com/jdeath/homeassistant-addons/]
 
 ## Installation
 
-_Addon running a Minecraft Bedrock Sever with RCON via stdin on Home Assistant._
+[![Add repository on my Home Assistant][repository-badge]][repository-url]
 
-For configuration use the add-on configuration UI of Home Assistant.
+If you want to do add the repository manually, please follow the procedure highlighted in the [Home Assistant website](https://home-assistant.io/hassio/installing_third_party_addons). Use the following URL to add this repository: https://github.com/jcasallecchio/homeassistant-addons
 
-[aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
-[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
+[repository-badge]: https://img.shields.io/badge/Add%20repository%20to%20my-Home%20Assistant-41BDF5?logo=home-assistant&style=for-the-badge
+[repository-url]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fjcasallecchio%2Fhomeassistant-addons
