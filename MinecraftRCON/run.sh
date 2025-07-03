@@ -31,7 +31,7 @@ if isTrue "$DEBUG"; then
   set -x
 fi
 
-log $INTRO "[ .......... Iniciando Minecraft Bedrock RCON .......... ]"
+log $INTRO "=========== Iniciando Minecraft Bedrock RCON ==========="
 
 mkdir -p "$SERVER_DIR" "$BACKUP_DIR"
 
