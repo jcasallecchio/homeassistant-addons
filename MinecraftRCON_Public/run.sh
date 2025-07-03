@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # --- Configurações ---
-SERVER_DIR="/share/minecraftRCON"
+SERVER_DIR="/share/minecraftRCON_Public"
 BACKUP_DIR="$SERVER_DIR/backups"
 LAST_VERSION_FILE="$SERVER_DIR/lastversion.txt"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
