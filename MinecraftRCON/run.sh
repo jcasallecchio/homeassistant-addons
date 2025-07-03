@@ -26,81 +26,68 @@ BACKUP_TARGET="$BACKUP_DIR/backup-$TIMESTAMP"
 mkdir -p "$SERVER_DIR"
 mkdir -p "$BACKUP_DIR"
 
-# Função para buscar última versão via fallback (API alternativa)
+SECONDS=0
+
 fetch_latest_version_fallback() {
-  log $YELLOW "Buscando última versão via fallback..."
-  local version
-  version=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/latest" || true)
-  if [[ -z "$version" ]]; then
-    log $RED "Falha ao obter a versão via fallback."
-    exit 1
-  fi
-  echo "$version"
+  # Apenas retorna a versão, sem log para não poluir output
+  curl -fsSL "https://mc-bds-helper.vercel.app/api/latest" || true
 }
 
-# Ler versão salva ou buscar fallback
+# Obtém a última versão, criando arquivo se não existir ou estiver vazio
 if [[ ! -s "$LAST_VERSION_FILE" ]]; then
-  log $YELLOW "Arquivo lastversion.txt não encontrado ou vazio, buscando última versão..."
+  log $YELLOW "Arquivo lastversion.txt não encontrado ou vazio, buscando última versão via fallback..."
   LATEST_VERSION=$(fetch_latest_version_fallback)
+  if [[ -z "$LATEST_VERSION" ]]; then
+    log $RED "Erro ao buscar versão via fallback, abortando."
+    exit 1
+  fi
   echo "$LATEST_VERSION" > "$LAST_VERSION_FILE"
 else
   LATEST_VERSION=$(cat "$LAST_VERSION_FILE")
   log $YELLOW "Versão salva em lastversion.txt: $LATEST_VERSION"
 fi
 
-# Versão instalada atual - tenta extrair do arquivo bedrock_server-<versao>
-INSTALLED_VERSION=""
+# Para efeito de exemplo, detecta se o servidor está instalado verificando se o binário existe
 if [[ -f "$SERVER_BIN" ]]; then
-  # Tenta obter versão do binário, se possível
-  if [[ -f "$SERVER_DIR/bedrock_server" ]]; then
-    INSTALLED_VERSION="local"
-  else
-    INSTALLED_VERSION="desconhecida"
-  fi
+  INSTALLED_VERSION="local"
+else
+  INSTALLED_VERSION=""
 fi
 
-log $YELLOW "Versão atual instalada: ${INSTALLED_VERSION:-Nenhuma}"
+log $YELLOW "Versão atual instalada: $INSTALLED_VERSION"
 
 if [[ "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
-  log $YELLOW "Versão instalada diferente da última (${LATEST_VERSION}), atualizando..."
+  log $YELLOW "Versão instalada diferente da última ($LATEST_VERSION), atualizando..."
 
-  # Download URL base do fallback
-  DOWNLOAD_URL="https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-${LATEST_VERSION}.zip"
-
-  log $YELLOW "Baixando servidor Bedrock versão $LATEST_VERSION..."
-  curl -fsSL -o "$SERVER_ZIP" "$DOWNLOAD_URL"
-
-  if [[ ! -f "$SERVER_ZIP" ]]; then
-    log $RED "Download falhou, arquivo $SERVER_ZIP não encontrado."
-    exit 1
-  fi
-
-  # Backup seletivo antes da atualização
+  # Faz backup seletivo antes
   log $YELLOW "Criando backup seletivo em $BACKUP_TARGET..."
   mkdir -p "$BACKUP_TARGET"
-
   for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
-    if [[ -e "$SERVER_DIR/$item" ]]; then
+    if [ -e "$SERVER_DIR/$item" ]; then
       log $YELLOW "Salvando $item..."
       cp -r "$SERVER_DIR/$item" "$BACKUP_TARGET/"
     fi
   done
 
-  # Prune backups antigos mantendo os 2 mais recentes
+  # Remove backups antigos, mantendo os 2 mais recentes
   log $YELLOW "Removendo backups antigos, mantendo os 2 mais recentes..."
-  ls -1dt "$BACKUP_DIR"/backup-* 2>/dev/null | tail -n +3 | xargs -r rm -rf
+  (cd "$BACKUP_DIR" && ls -1dt backup-* | tail -n +3 | xargs -r rm -rf)
 
-  # Extrair com progresso personalizado, só mostrando porcentagem
-  total_files=$(unzip -l "$SERVER_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
-  log $YELLOW "Arquivo $SERVER_ZIP encontrado, iniciando extração... Total de arquivos: $total_files"
+  # Baixa o zip do servidor
+  DOWNLOAD_URL="https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-${LATEST_VERSION}.zip"
+  log $YELLOW "Baixando servidor Bedrock versão $LATEST_VERSION..."
+  curl -o "$SERVER_ZIP" -fsSL "$DOWNLOAD_URL"
 
+  # Extrai mostrando progresso percentual, suprimindo detalhes inflating/creating
+  total=$(unzip -l "$SERVER_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
+  log $YELLOW "Arquivo server.zip encontrado, iniciando extração..."
   count=0
   last_percent=0
   unzip -o "$SERVER_ZIP" -d "$SERVER_DIR" | while read -r line; do
     if echo "$line" | grep -q "inflating:"; then
       count=$((count + 1))
-      percent=$((count * 100 / total_files))
-      if [[ $percent -ne $last_percent ]]; then
+      percent=$((count * 100 / total))
+      if [ "$percent" -ne "$last_percent" ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extraindo arquivos... $percent%"
         last_percent=$percent
       fi
@@ -109,8 +96,9 @@ if [[ "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
 
   log $YELLOW "Extração concluída em ${SECONDS}s! Restaurando arquivos do backup..."
 
+  # Restaura arquivos importantes do backup
   for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
-    if [[ -e "$BACKUP_TARGET/$item" ]]; then
+    if [ -e "$BACKUP_TARGET/$item" ]; then
       log $YELLOW "Restaurando $item..."
       rm -rf "$SERVER_DIR/$item"
       cp -r "$BACKUP_TARGET/$item" "$SERVER_DIR/"
@@ -118,18 +106,16 @@ if [[ "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
   done
 
   log $YELLOW "Removendo $SERVER_ZIP"
+  chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
 
-  # Ajusta permissão
-  chmod +x "$SERVER_BIN"
-
-  # Atualiza lastversion.txt
+  # Atualiza lastversion.txt para garantir
   echo "$LATEST_VERSION" > "$LAST_VERSION_FILE"
 else
-  log $YELLOW "Versão instalada já é a última ($LATEST_VERSION). Nenhuma atualização necessária."
+  log $YELLOW "Versão instalada já está atualizada: $INSTALLED_VERSION"
 fi
 
-if [[ ! -f "$SERVER_BIN" ]]; then
+if [ ! -f "$SERVER_BIN" ]; then
   log $RED "Arquivo $SERVER_BIN não encontrado. Coloque server.zip para extrair."
   exit 1
 fi
@@ -144,7 +130,7 @@ sleep 10
 log $YELLOW "Iniciando RCON personalizado..."
 python3 /rcon_server.py &
 
-log $GREEN "Servidor Minecraft Bedrock e RCON online."
+log $GREEN "Minecraft Bedrock RCON Server Online..."
 
 wait
 exit $?
