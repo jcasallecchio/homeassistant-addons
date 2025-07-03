@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -e
 
@@ -12,11 +11,26 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${GREEN}[ ############### Iniciando Minecra
 SERVER_DIR="/share/minecraftRCON"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
 SERVER_ZIP="$SERVER_DIR/server.zip"
+BACKUP_DIR="$SERVER_DIR/backups"
+TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+BACKUP_TARGET="$BACKUP_DIR/backup-$TIMESTAMP"
 
 mkdir -p "$SERVER_DIR"
+mkdir -p "$BACKUP_DIR"
 
 # Se existir o zip, extrai e apaga para atualizar o servidor
 if [ -f "$SERVER_ZIP" ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${YELLOW}Backup de segurança antes da atualização..."
+
+  mkdir -p "$BACKUP_TARGET"
+
+  for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
+    if [ -e "$SERVER_DIR/$item" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Salvando $item..."
+      cp -r "$SERVER_DIR/$item" "$BACKUP_TARGET/"
+    fi
+  done
+
   total=$(unzip -l "$SERVER_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${YELLOW}Arquivo server.zip encontrado, iniciando extração..."
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${YELLOW}Extraindo arquivos... Total: $total"
@@ -33,7 +47,18 @@ if [ -f "$SERVER_ZIP" ]; then
       fi
     fi
   done
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${YELLOW}Extração concluída! Removendo $SERVER_ZIP"
+
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${YELLOW}Extração concluída! Restaurando arquivos do backup..."
+
+  for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
+    if [ -e "$BACKUP_TARGET/$item" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restaurando $item..."
+      rm -rf "$SERVER_DIR/$item"
+      cp -r "$BACKUP_TARGET/$item" "$SERVER_DIR/"
+    fi
+  done
+
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${YELLOW}Removendo $SERVER_ZIP"
   chmod +x "$SERVER_BIN"
   rm "$SERVER_ZIP"
 fi
