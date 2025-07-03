@@ -74,20 +74,24 @@ lookupVersion() {
   DOWNLOAD_URL="$download_url"
 }
 
-# --- Define versão atual ---
-CURRENT_VERSION=""
+# --- Verifica versão instalada (se houver) ---
+INSTALLED_VERSION=""
 if [[ -f "$LAST_VERSION_FILE" ]]; then
-  CURRENT_VERSION=$(<"$LAST_VERSION_FILE")
+  INSTALLED_VERSION=$(<"$LAST_VERSION_FILE")
 fi
 
-# Se não existe ou vazio, baixa a última versão
-if [[ -z "$CURRENT_VERSION" ]]; then
-  log $YELLOW "Arquivo lastversion.txt não encontrado ou vazio, buscando última versão..."
-  lookupVersion serverBedrockLinux
-  echo "$VERSION" > "$LAST_VERSION_FILE"
+# --- Busca última versão disponível online ---
+lookupVersion serverBedrockLinux
+log $GREEN "Versão disponível online: $VERSION"
+log $GREEN "Versão instalada localmente: ${INSTALLED_VERSION:-nenhuma}"
+
+# --- Decide se precisa atualizar ---
+NEED_UPDATE=true
+if [[ "$VERSION" == "$INSTALLED_VERSION" ]] && [[ -f "$SERVER_BIN" ]]; then
+  log $GREEN "Servidor já está na versão $VERSION, não será atualizado."
+  NEED_UPDATE=false
 else
-  VERSION="$CURRENT_VERSION"
-  lookupVersion serverBedrockLinux "$VERSION"
+  log $YELLOW "Versão instalada ($INSTALLED_VERSION) diferente da disponível ($VERSION), atualizando..."
 fi
 
 log $GREEN "Versão atual configurada: $VERSION"
@@ -115,20 +119,7 @@ do_backup() {
   find "$BACKUP_DIR" -maxdepth 1 -type d -name "backup-*" | sort -r | tail -n +$((PACKAGE_BACKUP_KEEP + 1)) | xargs -r rm -rf
 }
 
-# --- Verifica necessidade de download e atualização ---
-NEED_UPDATE=true
-INSTALLED_VERSION=""
-if [[ -f "$LAST_VERSION_FILE" ]]; then
-  INSTALLED_VERSION=$(<"$LAST_VERSION_FILE")
-fi
-
-if [[ "$INSTALLED_VERSION" == "$VERSION" ]] && [[ -f "$SERVER_BIN" ]]; then
-  log $GREEN "Servidor já está na versão $VERSION, não será atualizado."
-  NEED_UPDATE=false
-else
-  log $YELLOW "Versão instalada ($INSTALLED_VERSION) diferente da última ($VERSION), atualizando..."
-fi
-
+# --- Executa atualização se necessário ---
 if $NEED_UPDATE; then
   do_backup
 
