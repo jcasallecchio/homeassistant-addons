@@ -12,6 +12,7 @@ PACKAGE_BACKUP_KEEP=${PACKAGE_BACKUP_KEEP:-2}
 
 # Cores para log
 INTRO='\033[0;42m\033[1;37m'
+WHITE='\033[1;37m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -31,6 +32,11 @@ if isTrue "$DEBUG"; then
   set -x
 fi
 
+log $WHITE "."
+log $WHITE ".."
+log $WHITE "..."
+log $WHITE "...."
+log $WHITE "....."
 log $INTRO "=========== Iniciando Minecraft Bedrock RCON ==========="
 
 mkdir -p "$SERVER_DIR" "$BACKUP_DIR"
