@@ -19,17 +19,55 @@ SERVER_DIR="/share/minecraftRCON"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
 SERVER_ZIP="$SERVER_DIR/server.zip"
 BACKUP_DIR="$SERVER_DIR/backups"
-TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
-BACKUP_TARGET="$BACKUP_DIR/backup-$TIMESTAMP"
+VERSION_FILE="$SERVER_DIR/version.txt"
+LAST_VERSION_FILE="$SERVER_DIR/lastversion.txt"
+LATEST_URL="https://www.minecraft.net/en-us/download/server/bedrock"
 
 mkdir -p "$SERVER_DIR"
 mkdir -p "$BACKUP_DIR"
 
 SECONDS=0
 
+# Detectar última versão online
+LATEST_VERSION=$(curl -s "$LATEST_URL" | grep -oP 'bedrock-server-\K([0-9\.]+)(?=\.zip)' | head -1)
+
+if [ ! -s "$LAST_VERSION_FILE" ]; then
+  log $YELLOW "Arquivo lastversion.txt não encontrado ou vazio. Criando e definindo última versão: $LATEST_VERSION"
+  echo "$LATEST_VERSION" > "$LAST_VERSION_FILE"
+fi
+
+LAST_VERSION=$(cat "$LAST_VERSION_FILE")
+
+# Detectar versão instalada
+if [ -s "$VERSION_FILE" ]; then
+  INSTALLED_VERSION=$(cat "$VERSION_FILE")
+else
+  INSTALLED_VERSION="none"
+fi
+
+# Se versão instalada for diferente da última → baixar
+if [ "$INSTALLED_VERSION" != "$LAST_VERSION" ]; then
+  ZIP_URL="https://minecraft.azureedge.net/bin-linux/bedrock-server-$LAST_VERSION.zip"
+  log $YELLOW "Baixando Minecraft Bedrock versão $LAST_VERSION..."
+  curl -s -o "$SERVER_ZIP" "$ZIP_URL"
+
+  if [ $? -eq 0 ] && [ -s "$SERVER_ZIP" ]; then
+    echo "$LAST_VERSION" > "$VERSION_FILE"
+    log $GREEN "Download concluído com sucesso."
+  else
+    log $RED "Erro no download de $ZIP_URL"
+    rm -f "$SERVER_ZIP"
+    exit 1
+  fi
+else
+  log $GREEN "Servidor já está na versão $INSTALLED_VERSION."
+fi
+
 # Se existir o zip, extrai e apaga para atualizar o servidor
 if [ -f "$SERVER_ZIP" ]; then
   log $YELLOW "Backup de segurança antes da atualização..."
+  TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+  BACKUP_TARGET="$BACKUP_DIR/backup-$TIMESTAMP"
   mkdir -p "$BACKUP_TARGET"
 
   for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
