@@ -133,7 +133,6 @@ if $NEED_UPDATE; then
   curl -fsSL -o "$TMP_ZIP" -A "itzg/minecraft-bedrock-server" "$DOWNLOAD_URL"
 
   total=$(unzip -l "$TMP_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
-  log $YELLOW "Arquivo server.zip encontrado, iniciando extração..."
   log $YELLOW "Extraindo arquivos... Total: $total"
 
   count=0
