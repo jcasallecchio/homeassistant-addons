@@ -161,12 +161,28 @@ if $NEED_UPDATE; then
     rm -rf "$SERVER_DIR/$keep"
   done
 
-  # Extrai o zip
-  log $YELLOW "Extraindo arquivos do servidor..."
-  unzip -o "$TMP_ZIP" -d "$SERVER_DIR"
-  rm "$TMP_ZIP"
+  total=$(unzip -l "$TMP_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
+  log $YELLOW "Arquivo server.zip encontrado, iniciando extração..."
+  log $YELLOW "Extraindo arquivos... Total: $total"
 
+  count=0
+  last_percent=0
+  unzip -o "$TMP_ZIP" -d "$SERVER_DIR" | while read -r line; do
+    if echo "$line" | grep -q "inflating:"; then
+      count=$((count + 1))
+      percent=$((count * 100 / total))
+      if [ "$percent" -ne "$last_percent" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extraindo arquivos... $percent%"
+        last_percent=$percent
+      fi
+    fi
+  done
+
+  log $YELLOW "Extração concluída em ${SECONDS}s! Restaurando arquivos do backup..."
+
+  log $YELLOW "Removendo $SERVER_ZIP"
   chmod +x "$SERVER_BIN"
+  rm "$TMP_ZIP"
 
   echo "$VERSION" > "$LAST_VERSION_FILE"
 
