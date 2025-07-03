@@ -30,6 +30,9 @@ if isTrue "$DEBUG"; then
   set -x
 fi
 
+log $YELLOW "[ .................. ]"
+log $YELLOW "[ .................. ]"
+log $YELLOW "[ .................. ]"
 log $GREEN "[ ######### Iniciando Minecraft Bedrock RCON ######### ]"
 
 mkdir -p "$SERVER_DIR" "$BACKUP_DIR"
@@ -88,14 +91,12 @@ log $GREEN "Versão instalada localmente: ${INSTALLED_VERSION:-nenhuma}"
 # --- Decide se precisa atualizar ---
 NEED_UPDATE=true
 if [[ "$VERSION" == "$INSTALLED_VERSION" ]] && [[ -f "$SERVER_BIN" ]]; then
-  log $GREEN "Servidor já está na versão $VERSION, não será atualizado."
+  log $GREEN "Servidor já está na última versão, não será atualizado!"
   NEED_UPDATE=false
 else
   log $YELLOW "Versão instalada ($INSTALLED_VERSION) diferente da disponível ($VERSION), atualizando..."
+  log $GREEN "URL para download: $DOWNLOAD_URL"
 fi
-
-log $GREEN "Versão atual configurada: $VERSION"
-log $GREEN "URL para download: $DOWNLOAD_URL"
 
 # --- Backup e restauração ---
 BACKUP_TARGET=""
