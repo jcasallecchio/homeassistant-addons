@@ -156,11 +156,6 @@ if $NEED_UPDATE; then
   log $YELLOW "Baixando servidor Bedrock versão $VERSION..."
   curl -fsSL -o "$TMP_ZIP" -A "itzg/minecraft-bedrock-server" "$DOWNLOAD_URL"
 
-  # Remove arquivos antigos, preserva mundos e packs
-  for keep in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
-    rm -rf "$SERVER_DIR/$keep"
-  done
-
   total=$(unzip -l "$TMP_ZIP" | grep -E '^[ ]+[0-9]' | wc -l)
   log $YELLOW "Arquivo server.zip encontrado, iniciando extração..."
   log $YELLOW "Extraindo arquivos... Total: $total"
@@ -180,6 +175,14 @@ if $NEED_UPDATE; then
 
   log $YELLOW "Extração concluída em ${SECONDS}s! Restaurando arquivos do backup..."
 
+  for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
+    if [ -e "$BACKUP_TARGET/$item" ]; then
+      log $YELLOW "Restaurando $item..."
+      rm -rf "$SERVER_DIR/$item"
+      cp -r "$BACKUP_TARGET/$item" "$SERVER_DIR/"
+    fi
+  done
+  
   log $YELLOW "Removendo $SERVER_ZIP"
   chmod +x "$SERVER_BIN"
   rm "$TMP_ZIP"
