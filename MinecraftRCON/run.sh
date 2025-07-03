@@ -8,7 +8,7 @@ LAST_VERSION_FILE="$SERVER_DIR/lastversion.txt"
 SERVER_BIN="$SERVER_DIR/bedrock_server"
 SERVER_ZIP="$SERVER_DIR/server.zip"
 DEBUG=${DEBUG:-false}
-EULA=${EULA:-false}
+EULA=${EULA:-true}
 PACKAGE_BACKUP_KEEP=${PACKAGE_BACKUP_KEEP:-2}
 
 # Cores para log
