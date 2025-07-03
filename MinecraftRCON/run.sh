@@ -117,14 +117,16 @@ do_backup() {
 
 # --- Verifica necessidade de download e atualização ---
 NEED_UPDATE=true
-if [[ -f "$SERVER_BIN" ]]; then
-  INSTALLED_VERSION="local" # Como não há forma confiável de detectar
-  if [[ "$INSTALLED_VERSION" == "$VERSION" ]]; then
-    log $GREEN "Servidor já está na versão $VERSION, não será atualizado."
-    NEED_UPDATE=false
-  else
-    log $YELLOW "Versão instalada ($INSTALLED_VERSION) diferente da última ($VERSION), atualizando..."
-  fi
+INSTALLED_VERSION=""
+if [[ -f "$LAST_VERSION_FILE" ]]; then
+  INSTALLED_VERSION=$(<"$LAST_VERSION_FILE")
+fi
+
+if [[ "$INSTALLED_VERSION" == "$VERSION" ]] && [[ -f "$SERVER_BIN" ]]; then
+  log $GREEN "Servidor já está na versão $VERSION, não será atualizado."
+  NEED_UPDATE=false
+else
+  log $YELLOW "Versão instalada ($INSTALLED_VERSION) diferente da última ($VERSION), atualizando..."
 fi
 
 if $NEED_UPDATE; then
