@@ -16,7 +16,6 @@ INTRO='\033[0;42m\033[1;37m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-WHITE='\033[1;37m'
 RESET='\033[0m'
 
 
@@ -33,9 +32,9 @@ if isTrue "$DEBUG"; then
   set -x
 fi
 
-log $WHITE "[ .................. ]"
-log $WHITE "[ .................. ]"
-log $WHITE "[ .................. ]"
+echo ""
+echo ""
+echo ""
 log $INTRO "[ .......... Iniciando Minecraft Bedrock RCON .......... ]"
 
 mkdir -p "$SERVER_DIR" "$BACKUP_DIR"
