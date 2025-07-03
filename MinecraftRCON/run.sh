@@ -40,8 +40,6 @@ if ! isTrue "$EULA"; then
 fi
 
 # --- Função para buscar versão e URL de download ---
-DOWNLOAD_LINKS_URL="https://net-secondary.web.minecraft-services.net/api/v1.0/download/links"
-
 replace_version_in_url() {
   local url="$1" new_ver="$2"
   echo "$url" | sed -E "s/(bedrock-server-)[^/]+(\.zip)/\1${new_ver}\2/"
@@ -52,33 +50,21 @@ lookupVersion() {
   local customVersion="$2"
   local download_url
 
-  if ! download_url=$(curl -fsSL "${DOWNLOAD_LINKS_URL}" | \
-    jq --arg platform "$platform" -r '
-      try(fromjson) catch({}) |
-      .result.links // [] |
-      map(select(.downloadType == $platform)) |
-      if length > 0 then
-        .[0].downloadUrl
-      else
-        empty
-      end
-    '); then
-    log $YELLOW "API falhou, tentando fallback..."
-    if [[ "$platform" == "serverBedrockLinux" ]]; then
-      download_url=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/latest")
-    elif [[ "$platform" == "serverBedrockPreviewLinux" ]]; then
-      download_url=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/preview")
-    else
-      log $RED "Plataforma inválida: $platform"
-      exit 2
-    fi
+  log $YELLOW "Buscando última versão via fallback..."
+  if [[ "$platform" == "serverBedrockLinux" ]]; then
+    download_url=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/latest")
+  elif [[ "$platform" == "serverBedrockPreviewLinux" ]]; then
+    download_url=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/preview")
+  else
+    log $RED "Plataforma inválida: $platform"
+    exit 2
   fi
 
   if [[ -n "$customVersion" ]]; then
     download_url=$(replace_version_in_url "$download_url" "$customVersion")
   fi
 
-  if [[ $download_url =~ .*/bedrock-server-(.*)\.zip ]]; then
+  if [[ $download_url =~ .*/bedrock-server-([0-9.]+)\.zip ]]; then
     VERSION="${BASH_REMATCH[1]}"
   else
     log $RED "Falha ao extrair versão do URL: $download_url"
@@ -107,39 +93,32 @@ fi
 log $GREEN "Versão atual configurada: $VERSION"
 log $GREEN "URL para download: $DOWNLOAD_URL"
 
-# --- Função para fazer backup seletivo ---
-do_backup() {
-  local timestamp backup_target
-  timestamp=$(date '+%Y%m%d-%H%M%S')
-  backup_target="$BACKUP_DIR/backup-$timestamp"
+# --- Backup e restauração ---
+BACKUP_TARGET=""
 
-  log $YELLOW "Criando backup seletivo em $backup_target..."
-  mkdir -p "$backup_target"
+do_backup() {
+  local timestamp
+  timestamp=$(date '+%Y%m%d-%H%M%S')
+  BACKUP_TARGET="$BACKUP_DIR/backup-$timestamp"
+
+  log $YELLOW "Criando backup seletivo em $BACKUP_TARGET..."
+  mkdir -p "$BACKUP_TARGET"
 
   for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
     if [[ -e "$SERVER_DIR/$item" ]]; then
       log $YELLOW "Salvando $item..."
-      cp -r "$SERVER_DIR/$item" "$backup_target/"
+      cp -r "$SERVER_DIR/$item" "$BACKUP_TARGET/"
     fi
   done
 
-  # Limpa backups antigos mantendo apenas os mais recentes
   log $YELLOW "Removendo backups antigos, mantendo os $PACKAGE_BACKUP_KEEP mais recentes..."
-  cd "$BACKUP_DIR"
-  ls -1td backup-* | tail -n +$((PACKAGE_BACKUP_KEEP+1)) | xargs -r rm -rf
-  cd - >/dev/null
+  find "$BACKUP_DIR" -maxdepth 1 -type d -name "backup-*" | sort -r | tail -n +$((PACKAGE_BACKUP_KEEP + 1)) | xargs -r rm -rf
 }
 
 # --- Verifica necessidade de download e atualização ---
 NEED_UPDATE=true
 if [[ -f "$SERVER_BIN" ]]; then
-  # Tenta extrair versão do nome do binário atual
-  if [[ $(basename "$SERVER_BIN") =~ bedrock_server-(.*) ]]; then
-    INSTALLED_VERSION="${BASH_REMATCH[1]}"
-  else
-    INSTALLED_VERSION=""
-  fi
-
+  INSTALLED_VERSION="local" # Como não há forma confiável de detectar
   if [[ "$INSTALLED_VERSION" == "$VERSION" ]]; then
     log $GREEN "Servidor já está na versão $VERSION, não será atualizado."
     NEED_UPDATE=false
@@ -151,7 +130,6 @@ fi
 if $NEED_UPDATE; then
   do_backup
 
-  # Baixa o zip
   TMP_ZIP="$SERVER_DIR/server.zip"
   log $YELLOW "Baixando servidor Bedrock versão $VERSION..."
   curl -fsSL -o "$TMP_ZIP" -A "itzg/minecraft-bedrock-server" "$DOWNLOAD_URL"
@@ -176,14 +154,14 @@ if $NEED_UPDATE; then
   log $YELLOW "Extração concluída em ${SECONDS}s! Restaurando arquivos do backup..."
 
   for item in worlds behavior_packs resource_packs structures server.properties permissions.json allowlist.json; do
-    if [ -e "$BACKUP_TARGET/$item" ]; then
+    if [[ -e "$BACKUP_TARGET/$item" ]]; then
       log $YELLOW "Restaurando $item..."
       rm -rf "$SERVER_DIR/$item"
       cp -r "$BACKUP_TARGET/$item" "$SERVER_DIR/"
     fi
   done
-  
-  log $YELLOW "Removendo $SERVER_ZIP"
+
+  log $YELLOW "Removendo $TMP_ZIP"
   chmod +x "$SERVER_BIN"
   rm "$TMP_ZIP"
 
