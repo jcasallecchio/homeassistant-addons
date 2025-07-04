@@ -1,6 +1,6 @@
 {
   "name": "Bedrock Server with RCON",
-  "version": "1.2.1",
+  "version": "1.3.1",
   "slug": "bedrock_server_rcon",
   "description": "Minecraft Bedrock Server with RCON via stdin for Home Assistant",
   "startup": "services",
