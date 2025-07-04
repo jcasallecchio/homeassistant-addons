@@ -44,5 +44,5 @@ def rcon():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
-    print("[RCON] Servidor RCON iniciado na porta 19133")
-    serve(app, host="0.0.0.0", port=19133)
+    print("[RCON] Servidor RCON iniciado na porta 19188")
+    serve(app, host="0.0.0.0", port=19188)
