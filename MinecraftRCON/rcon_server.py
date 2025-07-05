@@ -3,7 +3,6 @@ import os
 import subprocess
 from waitress import serve
 from datetime import datetime
-import threading
 import time
 
 app = Flask(__name__)
@@ -18,24 +17,20 @@ def screen_exists(session_name=SCREEN_SESSION):
     except Exception:
         return False
 
-def read_log_since(timestamp):
+def read_log_since(timestamp_str):
     """
-    Lê o arquivo de log e retorna as linhas que vieram depois do timestamp fornecido.
-    Timestamp no formato datetime.
+    Lê o arquivo de log e retorna as linhas com timestamp maior que timestamp_str.
+    Usa comparação lexicográfica da string do timestamp no formato '[YYYY-MM-DD HH:MM:SS:ms'
     """
     lines = []
     try:
         with open(LOG_FILE, "r") as f:
             for line in f:
-                if len(line) < 24:
+                if len(line) < 25:
                     continue
-                time_str = line[1:24]  # exemplo: [2025-07-04 21:13:13:813
-                try:
-                    # Ajuste da string para datetime, removendo milissegundos extras
-                    time_obj = datetime.strptime(time_str[:-4], "%Y-%m-%d %H:%M:%S")
-                except Exception:
-                    continue
-                if time_obj > timestamp:
+                # Extrai o timestamp da linha do log, ex: [2025-07-04 21:13:13:813
+                line_timestamp = line[0:25]
+                if line_timestamp > timestamp_str:
                     lines.append(line.strip())
     except Exception:
         pass
@@ -53,8 +48,8 @@ def rcon():
         return jsonify({"status": "error", "message": f"No active screen session named '{SCREEN_SESSION}'"}), 500
 
     try:
-        # Marca o momento antes do comando ser enviado
-        timestamp_before = datetime.now()
+        # Marca o momento antes do comando ser enviado no formato exato do log
+        timestamp_before = datetime.now().strftime("[%Y-%m-%d %H:%M:%S:%f")[:-3]  # até milissegundos, sem fechar colchete
 
         # Envia comando via screen
         os.system(f"screen -S {SCREEN_SESSION} -X stuff '{cmd}\r'")
@@ -70,12 +65,9 @@ def rcon():
             elapsed += interval
             new_lines = read_log_since(timestamp_before)
             if new_lines:
-                # Verifica se encontrou linhas relevantes para o comando enviado
                 response_lines = new_lines
-                # Você pode fazer filtro aqui se quiser só linhas com "[INFO]" ou contendo o comando
                 break
 
-        # Junta as linhas com delimitador "|", removendo linhas vazias e espaços extras
         response = '|'.join(line.strip() for line in response_lines if line.strip())
 
         return jsonify({"status": "ok", "message": f"Command sent: {cmd}", "response": response})
