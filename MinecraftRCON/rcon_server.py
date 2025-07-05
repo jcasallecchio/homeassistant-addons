@@ -6,9 +6,22 @@ from waitress import serve
 
 app = Flask(__name__)
 
-# Caminhos de log
-SERVER_LOG = "/share/minecraftRCON/server.log"
-COMMAND_LOG = "/share/minecraftRCON/rcon_commands.log"
+LOG_FILE = "/share/minecraftRCON/server.log"
+LOG_OUTPUT = "/share/minecraftRCON/rcon_commands.log"
+
+# Lista de comandos que geralmente NÃO têm resposta no server.log
+SILENT_COMMANDS = [
+    "give", "tp", "teleport", "gamemode", "setworldspawn", "spawnpoint",
+    "effect", "clear", "title", "say", "tell", "whitelist", "op", "deop"
+]
+
+def log_action(msg):
+    """Grava em log de arquivo e também imprime no console do addon"""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    full_line = f"[{timestamp}] {msg}"
+    print(full_line)
+    with open(LOG_OUTPUT, "a") as log:
+        log.write(full_line + "\n")
 
 def screen_exists(session_name="mc"):
     try:
@@ -28,40 +41,46 @@ def rcon():
     if not screen_exists("mc"):
         return jsonify({"status": "error", "message": "No active screen session named 'mc'"}), 500
 
+    # Envia o comando via screen
     try:
-        # Envia o comando via screen
         os.system(f"screen -S mc -X stuff '{cmd}\r'")
+        log_action(f"Comando enviado: {cmd}")
+    except Exception as e:
+        log_action(f"Erro ao enviar comando: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-        # Log do comando enviado
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-        log_entry = f"[{timestamp}] Comando enviado: {cmd}\n"
-        with open(COMMAND_LOG, "a") as f:
-            f.write(log_entry)
-
-        # Espera um momento para o servidor responder no log
-        time.sleep(1.5)
-
-        response_lines = []
-        if os.path.exists(SERVER_LOG):
-            with open(SERVER_LOG, "r") as f:
-                lines = f.readlines()[-30:]  # últimas 30 linhas
-
-                # Filtra por resposta típica do comando "list"
-                for line in lines:
-                    if "There are" in line or "players online" in line:
-                        response_lines.append(line.strip())
-
-        response_text = "\n".join(response_lines) if response_lines else "Sem resposta detectada."
-
+    # Verifica se é comando silencioso
+    if any(cmd.lower().startswith(s) for s in SILENT_COMMANDS):
         return jsonify({
             "status": "ok",
             "message": f"Command sent: {cmd}",
-            "response": response_text
+            "response": "No output expected from this command."
         })
 
+    # Espera um pouco para o log ser atualizado
+    time.sleep(1)
+
+    # Lê as últimas linhas do server.log
+    response_lines = []
+    try:
+        with open(LOG_FILE, "r") as f:
+            lines = f.readlines()[-100:]
+            for line in reversed(lines):
+                if "INFO" in line and not line.strip().endswith("]:"):
+                    response_lines.append(line.strip())
+                    break
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        log_action(f"Erro ao ler server.log: {e}")
+        return jsonify({"status": "error", "message": "Command sent, but failed to read server.log"}), 500
+
+    response_text = response_lines[0] if response_lines else "No response found in server.log"
+
+    return jsonify({
+        "status": "ok",
+        "message": f"Command sent: {cmd}",
+        "response": response_text
+    })
 
 if __name__ == "__main__":
-    print("[RCON] Servidor RCON iniciado na porta 19133")
+    log_action("Servidor RCON iniciado na porta 19133")
     serve(app, host="0.0.0.0", port=19133)
