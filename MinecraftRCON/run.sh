@@ -171,7 +171,7 @@ fi
 cd "$SERVER_DIR"
 
 log $YELLOW "Iniciando servidor Minecraft Bedrock..."
-screen -dmS mc bash -c "./bedrock_server | tee /share/minecraftRCON/server.log"
+screen -dmS mc bash -c "./bedrock_server | tee /share/minecraftRCON/server.log /proc/1/fd/1"
 
 sleep 10
 
