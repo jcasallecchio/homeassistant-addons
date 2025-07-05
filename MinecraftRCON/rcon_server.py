@@ -1,34 +1,45 @@
 from flask import Flask, request, jsonify
 import os
 import subprocess
-import time
 from waitress import serve
+from datetime import datetime
+import threading
+import time
 
 app = Flask(__name__)
 
 LOG_FILE = "/share/minecraftRCON/server.log"
-LOG_OUTPUT = "/share/minecraftRCON/rcon_commands.log"
+SCREEN_SESSION = "mc"
 
-# Lista de comandos que geralmente NÃO têm resposta no server.log
-SILENT_COMMANDS = [
-    "give", "tp", "teleport", "gamemode", "setworldspawn", "spawnpoint",
-    "effect", "clear", "title", "say", "tell", "whitelist", "op", "deop"
-]
-
-def log_action(msg):
-    """Grava em log de arquivo e também imprime no console do addon"""
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    full_line = f"[{timestamp}] {msg}"
-    print(full_line)
-    with open(LOG_OUTPUT, "a") as log:
-        log.write(full_line + "\n")
-
-def screen_exists(session_name="mc"):
+def screen_exists(session_name=SCREEN_SESSION):
     try:
         output = subprocess.check_output(["screen", "-ls"]).decode()
         return f"\t{session_name}" in output or f".{session_name}" in output
     except Exception:
         return False
+
+def read_log_since(timestamp):
+    """
+    Lê o arquivo de log e retorna as linhas que vieram depois do timestamp fornecido.
+    Timestamp no formato datetime.
+    """
+    lines = []
+    try:
+        with open(LOG_FILE, "r") as f:
+            for line in f:
+                if len(line) < 24:
+                    continue
+                time_str = line[1:24]  # exemplo: [2025-07-04 21:13:13:813
+                try:
+                    # Ajuste da string para datetime, removendo milissegundos extras
+                    time_obj = datetime.strptime(time_str[:-4], "%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    continue
+                if time_obj > timestamp:
+                    lines.append(line.strip())
+    except Exception:
+        pass
+    return lines
 
 @app.route("/rcon", methods=["POST"])
 def rcon():
@@ -38,49 +49,39 @@ def rcon():
     if not cmd:
         return jsonify({"status": "error", "message": "Missing command"}), 400
 
-    if not screen_exists("mc"):
-        return jsonify({"status": "error", "message": "No active screen session named 'mc'"}), 500
+    if not screen_exists(SCREEN_SESSION):
+        return jsonify({"status": "error", "message": f"No active screen session named '{SCREEN_SESSION}'"}), 500
 
-    # Envia o comando via screen
     try:
-        os.system(f"screen -S mc -X stuff '{cmd}\r'")
-        log_action(f"Comando enviado: {cmd}")
+        # Marca o momento antes do comando ser enviado
+        timestamp_before = datetime.now()
+
+        # Envia comando via screen
+        os.system(f"screen -S {SCREEN_SESSION} -X stuff '{cmd}\r'")
+
+        # Aguarda a resposta aparecer no log
+        timeout = 5  # segundos para aguardar resposta
+        interval = 0.2
+        elapsed = 0
+        response_lines = []
+
+        while elapsed < timeout:
+            time.sleep(interval)
+            elapsed += interval
+            new_lines = read_log_since(timestamp_before)
+            if new_lines:
+                # Verifica se encontrou linhas relevantes para o comando enviado
+                response_lines = new_lines
+                # Você pode fazer filtro aqui se quiser só linhas com "[INFO]" ou contendo o comando
+                break
+
+        # Junta as linhas com delimitador "|", removendo linhas vazias e espaços extras
+        response = '|'.join(line.strip() for line in response_lines if line.strip())
+
+        return jsonify({"status": "ok", "message": f"Command sent: {cmd}", "response": response})
     except Exception as e:
-        log_action(f"Erro ao enviar comando: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-    # Verifica se é comando silencioso
-    if any(cmd.lower().startswith(s) for s in SILENT_COMMANDS):
-        return jsonify({
-            "status": "ok",
-            "message": f"Command sent: {cmd}",
-            "response": "No output expected from this command."
-        })
-
-    # Espera um pouco para o log ser atualizado
-    time.sleep(1)
-
-    # Lê as últimas linhas do server.log
-    response_lines = []
-    try:
-        with open(LOG_FILE, "r") as f:
-            lines = f.readlines()[-100:]
-            for line in reversed(lines):
-                if "INFO" in line and not line.strip().endswith("]:"):
-                    response_lines.append(line.strip())
-                    break
-    except Exception as e:
-        log_action(f"Erro ao ler server.log: {e}")
-        return jsonify({"status": "error", "message": "Command sent, but failed to read server.log"}), 500
-
-    response_text = response_lines[0] if response_lines else "No response found in server.log"
-
-    return jsonify({
-        "status": "ok",
-        "message": f"Command sent: {cmd}",
-        "response": response_text
-    })
-
 if __name__ == "__main__":
-    log_action("Servidor RCON iniciado na porta 19133")
+    print(f"[RCON] Servidor RCON iniciado na porta 19133")
     serve(app, host="0.0.0.0", port=19133)
