@@ -2,6 +2,8 @@
 
 # ulimit -n 1048576
 
+echo ">>> [DEBUG] run.sh executado"
+
 until [ -e /var/run/avahi-daemon/socket ]; do
   sleep 1s
 done
