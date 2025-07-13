@@ -1,6 +1,7 @@
 #!/usr/bin/with-contenv bashio
 
 # ulimit -n 1048576
+ulimit -n 524288
 
 echo ">>> [DEBUG] run.sh executado"
 
