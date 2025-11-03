@@ -46,12 +46,6 @@ if ! isTrue "$EULA"; then
   exit 1
 fi
 
-# --- Função para buscar versão e URL de download ---
-replace_version_in_url() {
-  local url="$1" new_ver="$2"
-  echo "$url" | sed -E "s/(bedrock-server-)[0-9.]+(\.zip)/\1${new_ver}\2/"
-}
-
 lookupVersion() {
   local platform="$1"
   local customVersion="$2"
@@ -59,7 +53,7 @@ lookupVersion() {
 
   log $YELLOW "Buscando última versão via fonte oficial..."
 
-  # Baixa o JSON e filtra apenas o link correspondente ao tipo
+  # Baixa JSON
   local json=$(curl -fsSL "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links" || echo "")
 
   if [[ -z "$json" ]]; then
@@ -67,37 +61,20 @@ lookupVersion() {
     exit 2
   fi
 
-  # Extrai o link certo (somente o primeiro encontrado)
-  download_url=$(echo "$json" | grep -o "\"downloadType\":\"$platform\"[^\}]*" | grep -o "\"downloadUrl\":\"[^\"]*" | head -n 1 | sed -E 's/.*"downloadUrl":"([^"]*)/\1/')
+  # Usa jq para extrair downloadUrl do tipo solicitado
+  download_url=$(echo "$json" | jq -r ".result.links[] | select(.downloadType==\"$platform\") | .downloadUrl")
 
-  # Verifica se encontrou o link
   if [[ -z "$download_url" ]]; then
     log $RED "Falha ao localizar link de download para $platform"
     exit 2
   fi
 
-  # Se foi especificada uma versão manual
+  # Se especificou versão customizada
   if [[ -n "$customVersion" ]]; then
     download_url=$(replace_version_in_url "$download_url" "$customVersion")
   fi
 
   # Extrai número da versão
-  if [[ $download_url =~ bedrock-server-([0-9.]+)\.zip ]]; then
-    VERSION="${BASH_REMATCH[1]}"
-  else
-    log $RED "Falha ao extrair versão do URL: $download_url"
-    exit 2
-  fi
-
-  DOWNLOAD_URL="$download_url"
-}
-
-  # Aplica versão customizada, se informada
-  if [[ -n "$customVersion" ]]; then
-    download_url=$(replace_version_in_url "$download_url" "$customVersion")
-  fi
-
-  # Extrai número da versão do link
   if [[ $download_url =~ bedrock-server-([0-9.]+)\.zip ]]; then
     VERSION="${BASH_REMATCH[1]}"
   else
