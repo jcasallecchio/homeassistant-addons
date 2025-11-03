@@ -49,7 +49,7 @@ fi
 # --- Função para buscar versão e URL de download ---
 replace_version_in_url() {
   local url="$1" new_ver="$2"
-  echo "$url" | sed -E "s/(bedrock-server-)[^/]+(\.zip)/\1${new_ver}\2/"
+  echo "$url" | sed -E "s/(bedrock-server-)[0-9.]+(\.zip)/\1${new_ver}\2/"
 }
 
 lookupVersion() {
@@ -57,21 +57,27 @@ lookupVersion() {
   local customVersion="$2"
   local download_url
 
-  log $YELLOW "Buscando última versão via fallback..."
-  if [[ "$platform" == "serverBedrockLinux" ]]; then
-    download_url=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/latest")
-  elif [[ "$platform" == "serverBedrockPreviewLinux" ]]; then
-    download_url=$(curl -fsSL "https://mc-bds-helper.vercel.app/api/preview")
-  else
-    log $RED "Plataforma inválida: $platform"
+  log $YELLOW "Buscando última versão via fonte oficial..."
+
+  # Baixa o JSON e filtra só as linhas relevantes
+  local json=$(curl -fsSL "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links")
+
+  # Extrai o link correto com base no tipo
+  download_url=$(echo "$json" | grep -o "\"downloadType\":\"$platform\".*\"downloadUrl\":\"[^\"]*" | sed -E 's/.*"downloadUrl":"([^"]*)/\1/')
+
+  # Se o link não foi encontrado
+  if [[ -z "$download_url" ]]; then
+    log $RED "Falha ao localizar link de download para $platform"
     exit 2
   fi
 
+  # Aplica versão customizada, se informada
   if [[ -n "$customVersion" ]]; then
     download_url=$(replace_version_in_url "$download_url" "$customVersion")
   fi
 
-  if [[ $download_url =~ .*/bedrock-server-([0-9.]+)\.zip ]]; then
+  # Extrai número da versão do link
+  if [[ $download_url =~ bedrock-server-([0-9.]+)\.zip ]]; then
     VERSION="${BASH_REMATCH[1]}"
   else
     log $RED "Falha ao extrair versão do URL: $download_url"
